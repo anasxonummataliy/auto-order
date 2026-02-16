@@ -1,16 +1,25 @@
+import logging
 import os
 from telethon import TelegramClient
 import asyncio
 from datetime import datetime
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+
+logger = logging.getLogger(__name__)
 
 API_HASH = os.getenv("API_HASH")
 API_ID = os.getenv("API_ID")
 BOT_USERNAME = os.getenv("BOT_USERNAME")
-ORDER_TIME = os.getenv("BOT_USERNAME")
+ORDER_TIME = os.getenv("ORDER_TIME")
 PHONE = os.getenv("PHONE")
 
 client = TelegramClient("food_order_session", API_ID, API_HASH)
@@ -18,10 +27,10 @@ client = TelegramClient("food_order_session", API_ID, API_HASH)
 
 async def place_order():
     try:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Buyurtma boshlandi...")
+        logger.info("Buyurtma boshlandi...")
 
         bot = await client.get_entity(BOT_USERNAME)
-        print(f"Bot: {bot.username}")
+        logger.info(f"Bot: {bot.username}")
 
         async with client.conversation(bot) as conv:
             await conv.send_message("/start")
@@ -47,10 +56,10 @@ async def place_order():
                     break
 
             if not ertangi_button:
-                print("Ertangi buyurtma tugmasi topilmadi")
+                logger.warning("Ertangi buyurtma tugmasi topilmadi")
                 return False
 
-            print(f"'{ertangi_button}' bosilmoqda...")
+            logger.info(f"'{ertangi_button}' bosilmoqda...")
             await conv.send_message(ertangi_button)
             response = await conv.get_response()
             await asyncio.sleep(2)
@@ -63,10 +72,10 @@ async def place_order():
                         break
 
             if not response.reply_markup:
-                print("Ovqat tugmalari topilmadi")
+                logger.warning("Ovqat tugmalari topilmadi")
                 return False
 
-            print("Ovqatlar tanlanmoqda...")
+            logger.info("Ovqatlar tanlanmoqda...")
             clicked = 0
 
             for row in response.reply_markup.rows:
@@ -90,9 +99,9 @@ async def place_order():
                         ):
 
                             if "✅" in button.text:
-                                print(f"  ✅ {button.text} - allaqachon tanlangan")
+                                logger.info(f"✅ {button.text} - allaqachon tanlangan")
                             else:
-                                print(f"  - {button.text}")
+                                logger.info(f"- {button.text}")
 
                                 if hasattr(button, "data"):
                                     await response.click(data=button.data)
@@ -106,10 +115,10 @@ async def place_order():
                                 clicked += 1
                                 await asyncio.sleep(1.5)
 
-            print(f"Ovqatlar tanlandi: {clicked} ta")
+            logger.info(f"Ovqatlar tanlandi: {clicked} ta")
             await asyncio.sleep(2)
 
-            print("Buyurtma tasdiqlanmoqda...")
+            logger.info("Buyurtma tasdiqlanmoqda...")
             messages = await client.get_messages(bot, limit=5)
 
             for msg in messages:
@@ -120,16 +129,16 @@ async def place_order():
                                 "ertangi" in button.text.lower()
                                 and "buyurtma" in button.text.lower()
                             ):
-                                print(f"'{button.text}' yana bosilmoqda...")
+                                logger.info(f"'{button.text}' yana bosilmoqda...")
                                 await conv.send_message(button.text)
                                 await asyncio.sleep(1)
                                 break
 
-            print("Buyurtma muvaffaqiyatli!")
+            logger.info("Buyurtma muvaffaqiyatli!")
             return True
 
     except Exception as e:
-        print(f"Xatolik: {e}")
+        logger.error(f"Xatolik: {e}")
         import traceback
 
         traceback.print_exc()
@@ -137,21 +146,21 @@ async def place_order():
 
 
 async def schedule_daily_order():
-    print("=" * 60)
-    print("TELEGRAM BOT AVTOMATIK BUYURTMA")
-    print("=" * 60)
-    print(f"Vaqt: {ORDER_TIME}")
-    print(f"Bot: {BOT_USERNAME}")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("TELEGRAM BOT AVTOMATIK BUYURTMA")
+    logger.info("=" * 60)
+    logger.info(f"Vaqt: {ORDER_TIME}")
+    logger.info(f"Bot: {BOT_USERNAME}")
+    logger.info("=" * 60)
 
     while True:
         now = datetime.now()
         current_time = now.strftime("%H:%M")
 
         if current_time == ORDER_TIME:
-            print(f"\nBuyurtma vaqti: {ORDER_TIME}")
+            logger.info(f"Buyurtma vaqti: {ORDER_TIME}")
             success = await place_order()
-            print("Tugadi\n" if success else "Xato\n")
+            logger.info("Tugadi" if success else "Xato")
             await asyncio.sleep(61)
         else:
             await asyncio.sleep(30)
@@ -161,18 +170,18 @@ async def main():
     try:
         await client.start(phone=PHONE)
         me = await client.get_me()
-        print(f"\nTelegram: {me.first_name}\n")
+        logger.info(f"Telegram: {me.first_name}")
 
-        print("Test buyurtma...")
+        logger.info("Test buyurtma...")
         await place_order()
 
-        print("\nAvtomat rejim yoqildi...\n")
+        logger.info("Avtomat rejim yoqildi...")
         await schedule_daily_order()
 
     except KeyboardInterrupt:
-        print("\n\nTo'xtatildi")
+        logger.info("To'xtatildi")
     except Exception as e:
-        print(f"\nXatolik: {e}")
+        logger.error(f"Xatolik: {e}")
     finally:
         await client.disconnect()
 
