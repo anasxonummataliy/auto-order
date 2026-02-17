@@ -5,6 +5,7 @@ import asyncio
 from datetime import datetime
 from dotenv import load_dotenv
 import sys
+import pytz
 
 load_dotenv()
 
@@ -14,10 +15,13 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
+tz = pytz.timezone("Asia/Tashkent")
+now = datetime.now(tz)
+
 logger = logging.getLogger(__name__)
 
 API_HASH = os.getenv("API_HASH")
-API_ID = os.getenv("API_ID")
+API_ID = int(os.getenv("API_ID").strip())
 BOT_USERNAME = os.getenv("BOT_USERNAME")
 ORDER_TIME = os.getenv("ORDER_TIME")
 PHONE = os.getenv("PHONE")
@@ -154,7 +158,7 @@ async def schedule_daily_order():
     logger.info("=" * 60)
 
     while True:
-        now = datetime.now()
+        now = datetime.now(tz)
         current_time = now.strftime("%H:%M")
 
         if current_time == ORDER_TIME:
@@ -173,7 +177,7 @@ async def main():
         logger.info(f"Telegram: {me.first_name}")
 
         logger.info("Test buyurtma...")
-        await place_order()
+        # await place_order()
 
         logger.info("Avtomat rejim yoqildi...")
         await schedule_daily_order()
