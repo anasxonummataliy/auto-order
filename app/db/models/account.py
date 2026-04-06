@@ -1,6 +1,6 @@
-from datetime import datetime, date
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Boolean, Integer, DateTime, Date
+from datetime import datetime
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Boolean, Integer, DateTime
 from sqlalchemy import Enum as SqlEnum
 
 from app.db.base import Base
@@ -17,8 +17,6 @@ class Account(Base):
     session_name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     bot_username: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    order_time: Mapped[str] = mapped_column(String(5), default="18:00", nullable=False)
-
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_order_enabled: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
@@ -30,10 +28,20 @@ class Account(Base):
         nullable=False,
     )
 
-    last_order_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
         nullable=False,
+    )
+
+    schedules = relationship(
+        "OrderSchedule",
+        back_populates="account",
+        cascade="all, delete-orphan",
+    )
+
+    logs = relationship(
+        "RunLog",
+        back_populates="account",
+        cascade="all, delete-orphan",
     )

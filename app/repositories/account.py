@@ -90,3 +90,25 @@ class AccountRepository:
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def set_active_flag(self, account_id: int, is_active: bool) -> Account | None:
+        account = await self.get_by_id(account_id)
+        if not account:
+            return None
+
+        account.is_active = is_active
+        await self.session.commit()
+        await self.session.refresh(account)
+        return account
+
+    async def update_session_name(
+        self, account_id: int, session_name: str
+    ) -> Account | None:
+        account = await self.get_by_id(account_id)
+        if not account:
+            return None
+
+        account.session_name = session_name
+        await self.session.commit()
+        await self.session.refresh(account)
+        return account
